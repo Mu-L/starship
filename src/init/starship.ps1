@@ -24,12 +24,13 @@ function global:prompt {
 
     function Invoke-Native {
         param($Executable, $Arguments)
-        $startInfo = [System.Diagnostics.ProcessStartInfo]::new($Executable);
-        $startInfo.StandardOutputEncoding = [System.Text.Encoding]::UTF8;
-        $startInfo.RedirectStandardOutput = $true;
-        $startInfo.RedirectStandardError = $true;
-        $startInfo.CreateNoWindow = $true;
-        $startInfo.UseShellExecute = $false;
+        $startInfo = New-Object System.Diagnostics.ProcessStartInfo -ArgumentList $Executable -Property @{
+            StandardOutputEncoding = [System.Text.Encoding]::UTF8;
+            RedirectStandardOutput = $true;
+            RedirectStandardError = $true;
+            CreateNoWindow = $true;
+            UseShellExecute = $false;
+        };
         if ($startInfo.ArgumentList.Add) {
             # PowerShell 6+ uses .NET 5+ and supports the ArgumentList property
             # which bypasses the need for manually escaping the argument list into
@@ -81,8 +82,8 @@ function global:prompt {
     if ($lastCmd = Get-History -Count 1) {
         # In case we have a False on the Dollar hook, we know there's an error.
         if (-not $origDollarQuestion) {
-            # We retrieve the InvocationInfo from the most recent error.
-            $lastCmdletError = try { Get-Error |  Where-Object { $_ -ne $null } | Select-Object -expand InvocationInfo } catch { $null }
+            # We retrieve the InvocationInfo from the most recent error using $error[0]
+            $lastCmdletError = try { $error[0] |  Where-Object { $_ -ne $null } | Select-Object -ExpandProperty InvocationInfo } catch { $null }
             # We check if the last command executed matches the line that caused the last error, in which case we know
             # it was an internal Powershell command, otherwise, there MUST be an error code.
             $lastExitCodeForPrompt = if ($null -ne $lastCmdletError -and $lastCmd.CommandLine -eq $lastCmdletError.Line) { 1 } else { $origLastExitCode }
